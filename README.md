@@ -1,5 +1,11 @@
 # HF to Ollama
 
+## Скачать готовое приложение
+
+[Скачать HF to Ollama для macOS Apple Silicon](https://github.com/Whilser/hf-to-ollama/releases/download/v0.1.0/HF.to.Ollama.zip)
+
+Распакуйте ZIP и откройте **HF to Ollama.app**. Приложение уже скомпилировано. Требуемые Ollama, Python, hf и uv устанавливаются отдельно. Сборка имеет локальную подпись и не нотариализована Apple.
+
 Утилита для Mac с Apple Silicon. Скачивает Safetensors из Hugging Face, импортирует модель в локальный Ollama через MLX и делает короткий проверочный запрос.
 
 ## Запуск
