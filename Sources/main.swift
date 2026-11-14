@@ -1,4 +1,5 @@
 import Cocoa
+import CryptoKit
 class Controller: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
  var window: NSWindow!
  let modelsPane = ModelsPane()
@@ -94,6 +95,7 @@ class Controller: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
   sourceRow.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
   chooseSource.target=self;chooseSource.action = #selector(folder)
   stack.addArrangedSubview(chooseSource)
+  stack.addArrangedSubview(NSButton(title:"Открыть папку со скачанными весами",target:self,action:#selector(openDownloadedWeights)))
   stack.addArrangedSubview(NSTextField(labelWithString:"Имя модели в Ollama"))
   stack.addArrangedSubview(name)
   start.target=self; start.action = #selector(run); start.bezelStyle = .rounded
@@ -171,6 +173,23 @@ class Controller: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
   guard !quantSource.stringValue.isEmpty,!quantName.stringValue.isEmpty else {return}
   launchImport(["python3",Bundle.main.resourcePath!+"/requantize.py","--source",quantSource.stringValue,"--name",quantName.stringValue,"--bits",quantBits.indexOfSelectedItem == 0 ? "4":"8"])
   if process != nil, let tabs=window.contentView?.subviews.first as? NSTabView {tabs.selectTabViewItem(at:0)}
+ }
+ @objc func openDownloadedWeights() {
+  let root=FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/HF to Ollama")
+  var destination=root
+  if let repository=Self.repositoryID(source.stringValue) {
+   let digest=SHA256.hash(data:Data((repository+"@main").utf8))
+   let key=digest.map {String(format:"%02x",$0)}.joined().prefix(20)
+   let candidate=root.appendingPathComponent(String(key))
+   if FileManager.default.fileExists(atPath:candidate.path) {destination=candidate}
+   else {status.stringValue="Папка этой модели ещё не создана. Открываю общий каталог."}
+  } else if source.stringValue.hasPrefix("/") {
+   destination=URL(fileURLWithPath:source.stringValue)
+  }
+  do {
+   if destination == root {try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)}
+   if !NSWorkspace.shared.open(destination) {status.stringValue="Не удалось открыть папку"}
+  } catch {status.stringValue=error.localizedDescription}
  }
  @objc func pasteSource() {
   guard process == nil else { return }

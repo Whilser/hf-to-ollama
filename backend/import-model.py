@@ -79,6 +79,18 @@ def repository(value):
     return value
 
 
+def validate_architecture(config, version):
+    architectures = config.get("architectures", [])
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+    known_version = match and tuple(map(int, match.groups())) <= (0, 40, 16)
+    if known_version and ("GptOssForCausalLM" in architectures or config.get("model_type") == "gpt_oss"):
+        raise RuntimeError(
+            f"Ollama {version} не поддерживает GPT-OSS через MLX-импорт. "
+            "Для запуска в Ollama доступна команда: ollama run gpt-oss:20b. "
+            "Загрузка весов остановлена после проверки конфигурации."
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Импорт Safetensors из Hugging Face в Ollama MLX")
     source = parser.add_mutually_exclusive_group(required=True)
@@ -104,6 +116,9 @@ def main():
         print(f"Скачиваю {repo} ({args.revision}) в {weights}", flush=True)
         download = ["hf", "download", repo, "--revision", args.revision, "--local-dir", str(weights)]
         environment = {**os.environ, "HF_HUB_DISABLE_XET": os.environ.get("HF_HUB_DISABLE_XET", "1")}
+        print("Проверяю архитектуру модели…", flush=True)
+        command(*download, "config.json", env=environment)
+        validate_architecture(json.loads((weights / "config.json").read_text()), version)
         command(*download, "--include", "*.json", "--include", "*.jinja",
                 "--include", "*.model", "--include", "*.txt", "--exclude", "*/*", env=environment)
         index_file = weights / "model.safetensors.index.json"
@@ -119,6 +134,7 @@ def main():
     else:
         weights = args.local.expanduser().resolve()
     config = json.loads((weights / "config.json").read_text())
+    validate_architecture(config, version)
     if not list(weights.glob("*.safetensors")):
         raise RuntimeError("Папка должна содержать файлы Safetensors.")
     split_experts = False
