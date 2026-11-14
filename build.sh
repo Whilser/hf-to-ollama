@@ -6,7 +6,7 @@ stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 app="$stage/HF to Ollama.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-swiftc Sources/main.swift Sources/Models.swift -o "$app/Contents/MacOS/HFToOllama"
+swiftc -module-cache-path "$stage/ModuleCache" Sources/main.swift Sources/Models.swift -o "$app/Contents/MacOS/HFToOllama"
 cp assets/Info.plist "$app/Contents/"
 cp assets/AppIcon.icns backend/*.py "$app/Contents/Resources/"
 xattr -cr "$app"
